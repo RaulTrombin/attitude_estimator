@@ -46,16 +46,16 @@ jobs:
           echo "CXX_COMPILER=clang++-18" >> "$GITHUB_ENV"
           echo "LINKER_FLAGS=-static-libstdc++ -static-libgcc" >> "$GITHUB_ENV"
 
-      # Apple Clang's libc++ lacks floating-point std::from_chars, so use Homebrew
-      # LLVM and link its libc++ statically: users do not need Homebrew installed.
       - name: Install tools (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install llvm ninja
           LLVM="$(brew --prefix llvm)"
+          echo "LLVM=$LLVM" >> "$GITHUB_ENV"
           echo "C_COMPILER=$LLVM/bin/clang" >> "$GITHUB_ENV"
           echo "CXX_COMPILER=$LLVM/bin/clang++" >> "$GITHUB_ENV"
-          echo "LINKER_FLAGS=-nostdlib++ $LLVM/lib/c++/libc++.a $LLVM/lib/c++/libc++abi.a" >> "$GITHUB_ENV"
+          echo "CXX_FLAGS=-D_LIBCPP_DISABLE_AVAILABILITY" >> "$GITHUB_ENV"
+          echo "LINKER_FLAGS=-L$LLVM/lib/c++ -L$LLVM/lib/unwind -lunwind -Wl,-rpath,$LLVM/lib/c++ -Wl,-rpath,$LLVM/lib/unwind" >> "$GITHUB_ENV"
 
       # clang-cl with the MSVC STL. The static CRT makes the .exe self-contained.
       - name: Set up MSVC environment (Windows)
@@ -70,15 +70,12 @@ jobs:
           echo "EXTRA_CMAKE_ARGS=-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" >> "$GITHUB_ENV"
           echo "EXE_SUFFIX=.exe" >> "$GITHUB_ENV"
 
-      # GoogleTest's project() enables C, so pin the C compiler as well: otherwise
-      # CMake picks GNU-style clang.exe on Windows and feeds it MSVC flags.
       - name: Configure
         run: |
-          cmake --preset "$PRESET" \
-            -DCMAKE_C_COMPILER="$C_COMPILER" \
-            -DCMAKE_CXX_COMPILER="$CXX_COMPILER" \
-            -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS" \
-            $EXTRA_CMAKE_ARGS
+          args=(-DCMAKE_C_COMPILER="$C_COMPILER" -DCMAKE_CXX_COMPILER="$CXX_COMPILER")
+          if [ -n "$CXX_FLAGS" ]; then args+=(-DCMAKE_CXX_FLAGS="$CXX_FLAGS"); fi
+          if [ -n "$LINKER_FLAGS" ]; then args+=(-DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS"); fi
+          cmake --preset "$PRESET" "${args[@]}" $EXTRA_CMAKE_ARGS
 
       - name: Build
         run: cmake --build --preset "$PRESET"
@@ -86,16 +83,42 @@ jobs:
       - name: Test
         run: ctest --preset "$PRESET"
 
-      - name: Smoke test
-        run: |
-          "build/$PRESET/attitude_estimator$EXE_SUFFIX" example/attitude_exam.log --output smoke.csv
-          head -n 3 smoke.csv
-
       - name: Package
         run: |
           PKG="attitude_estimator-$TAG-${{ matrix.target }}"
+          echo "PKG=$PKG" >> "$GITHUB_ENV"
           mkdir -p "dist/$PKG"
           cp "build/$PRESET/attitude_estimator$EXE_SUFFIX" README.md "dist/$PKG/"
+
+          # Bundle Homebrew's libc++ next to the binary and point every reference
+          # at it, so the package runs on Macs without Homebrew.
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            BIN="dist/$PKG/attitude_estimator"
+            LIB="dist/$PKG/lib"
+            mkdir "$LIB"
+            cp "$LLVM/lib/c++/libc++.1.dylib" "$LLVM/lib/c++/libc++abi.1.dylib" \
+               "$LLVM/lib/unwind/libunwind.1.dylib" "$LIB/"
+            chmod u+w "$LIB"/*
+            for file in "$BIN" "$LIB"/*; do
+              for dep in $(otool -L "$file" | tail -n +2 | awk '{print $1}'); do
+                name="$(basename "$dep")"
+                if [ -f "$LIB/$name" ] && [ "$dep" != "@executable_path/lib/$name" ]; then
+                  install_name_tool -change "$dep" "@executable_path/lib/$name" "$file"
+                fi
+              done
+            done
+            for lib in "$LIB"/*; do
+              install_name_tool -id "@executable_path/lib/$(basename "$lib")" "$lib"
+            done
+            install_name_tool -delete_rpath "$LLVM/lib/c++" "$BIN"
+            install_name_tool -delete_rpath "$LLVM/lib/unwind" "$BIN"
+            codesign --force --sign - "$BIN" "$LIB"/*
+            if otool -L "$BIN" "$LIB"/* | tee /dev/stderr | grep /opt/homebrew; then
+              echo "::error::package still references Homebrew"
+              exit 1
+            fi
+          fi
+
           cd dist
           if [ "$RUNNER_OS" = "Windows" ]; then
             7z a "$PKG.zip" "$PKG"
@@ -103,10 +126,17 @@ jobs:
             tar -czf "$PKG.tar.gz" "$PKG"
           fi
 
+      - name: Smoke test
+        run: |
+          "dist/$PKG/attitude_estimator$EXE_SUFFIX" example/attitude_exam.log --output smoke.csv
+          head -n 3 smoke.csv
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
-          path: dist/*.*
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
           if-no-files-found: error
 
   release:
