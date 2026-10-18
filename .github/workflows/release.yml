@@ -42,6 +42,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get install -y ninja-build clang-18 g++-14
+          echo "C_COMPILER=clang-18" >> "$GITHUB_ENV"
           echo "CXX_COMPILER=clang++-18" >> "$GITHUB_ENV"
           echo "LINKER_FLAGS=-static-libstdc++ -static-libgcc" >> "$GITHUB_ENV"
 
@@ -52,7 +53,6 @@ jobs:
         run: |
           brew install llvm ninja
           LLVM="$(brew --prefix llvm)"
-          echo "LLVM=$LLVM" >> "$GITHUB_ENV"
           echo "C_COMPILER=$LLVM/bin/clang" >> "$GITHUB_ENV"
           echo "CXX_COMPILER=$LLVM/bin/clang++" >> "$GITHUB_ENV"
           echo "LINKER_FLAGS=-nostdlib++ $LLVM/lib/c++/libc++.a $LLVM/lib/c++/libc++abi.a" >> "$GITHUB_ENV"
@@ -65,13 +65,17 @@ jobs:
       - name: Install tools (Windows)
         if: runner.os == 'Windows'
         run: |
+          echo "C_COMPILER=clang-cl" >> "$GITHUB_ENV"
           echo "CXX_COMPILER=clang-cl" >> "$GITHUB_ENV"
           echo "EXTRA_CMAKE_ARGS=-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" >> "$GITHUB_ENV"
           echo "EXE_SUFFIX=.exe" >> "$GITHUB_ENV"
 
+      # GoogleTest's project() enables C, so pin the C compiler as well: otherwise
+      # CMake picks GNU-style clang.exe on Windows and feeds it MSVC flags.
       - name: Configure
         run: |
           cmake --preset "$PRESET" \
+            -DCMAKE_C_COMPILER="$C_COMPILER" \
             -DCMAKE_CXX_COMPILER="$CXX_COMPILER" \
             -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS" \
             $EXTRA_CMAKE_ARGS
