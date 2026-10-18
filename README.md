@@ -14,6 +14,7 @@ pitch = atan2( ax, sqrt(ay² + az²))
 ```bash
 ./build/gcc-debug/attitude_estimator example/attitude_exam.log              # time_ms;roll_deg;pitch_deg
 ./build/gcc-debug/attitude_estimator example/attitude_exam.log --alpha 0.1  # low-pass filtered
+./build/gcc-debug/attitude_estimator example/attitude_exam.log --output attitude.csv  # write to a file
 ```
 
 
