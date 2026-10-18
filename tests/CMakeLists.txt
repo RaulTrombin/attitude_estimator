@@ -8,7 +8,7 @@ set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(hexagon_tests
-    greeting_test.cpp)
+    attitude_test.cpp)
 target_link_libraries(hexagon_tests PRIVATE
     hexagon::core
     GTest::gtest_main)
