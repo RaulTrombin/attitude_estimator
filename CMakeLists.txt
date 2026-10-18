@@ -13,7 +13,7 @@ endif()
 
 # ---- Library: all the real logic lives here ----
 add_library(hexagon_core
-    src/greeting.cpp)
+    src/attitude.cpp)
 add_library(hexagon::core ALIAS hexagon_core)
 
 target_include_directories(hexagon_core PUBLIC
@@ -24,9 +24,9 @@ target_compile_features(hexagon_core PUBLIC cxx_std_23)
 set_target_properties(hexagon_core PROPERTIES CXX_EXTENSIONS OFF)
 
 # ---- Executable: thin entry point ----
-add_executable(hexagon_app app/main.cpp)
-target_link_libraries(hexagon_app PRIVATE hexagon::core)
-set_target_properties(hexagon_app PROPERTIES CXX_EXTENSIONS OFF)
+add_executable(attitude_estimator app/attitude_estimator.cpp)
+target_link_libraries(attitude_estimator PRIVATE hexagon::core)
+set_target_properties(attitude_estimator PROPERTIES CXX_EXTENSIONS OFF)
 
 # ---- Tests ----
 option(HEXAGON_BUILD_TESTS "Build the unit tests" ON)
