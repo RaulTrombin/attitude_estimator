@@ -14,7 +14,7 @@ permissions:
 
 env:
   TAG: ${{ inputs.tag || github.ref_name }}
-  PRESET: clang-release
+  PRESET: release
 
 jobs:
   build:

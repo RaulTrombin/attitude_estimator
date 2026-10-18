@@ -33,10 +33,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ninja-build clang-18 clang-tidy-18 g++-14
 
       - name: Configure
-        run: cmake --preset clang-debug -DCMAKE_CXX_COMPILER=clang++-18
+        run: cmake --preset debug -DCMAKE_CXX_COMPILER=clang++-18
 
       - name: Run clang-tidy
-        run: run-clang-tidy-18 -quiet -clang-tidy-binary clang-tidy-18 -p build/clang-debug "$PWD/(src|app|tests)/"
+        run: run-clang-tidy-18 -quiet -clang-tidy-binary clang-tidy-18 -p build/debug "$PWD/(src|app|tests)/"
 
   test:
     name: test (${{ matrix.preset }})
@@ -45,26 +45,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - preset: gcc-debug
-            packages: g++-14
-            compiler: g++-14
-          - preset: gcc-release
-            packages: g++-14
-            compiler: g++-14
-          - preset: clang-debug
-            packages: clang-18 g++-14
-            compiler: clang++-18
-          - preset: clang-release
-            packages: clang-18 g++-14
-            compiler: clang++-18
+          - preset: debug
+          - preset: release
     steps:
       - uses: actions/checkout@v4
 
       - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y ninja-build ${{ matrix.packages }}
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang-18 g++-14
 
       - name: Configure
-        run: cmake --preset ${{ matrix.preset }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+        run: cmake --preset ${{ matrix.preset }} -DCMAKE_CXX_COMPILER=clang++-18
 
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}

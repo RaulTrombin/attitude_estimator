@@ -12,9 +12,9 @@ pitch = atan2( ax, sqrt(ay² + az²))
 ```
 
 ```bash
-./build/gcc-debug/attitude_estimator example/attitude_exam.log              # time_ms;roll_deg;pitch_deg
-./build/gcc-debug/attitude_estimator example/attitude_exam.log --alpha 0.1  # low-pass filtered
-./build/gcc-debug/attitude_estimator example/attitude_exam.log --output attitude.csv  # write to a file
+./build/debug/attitude_estimator example/attitude_exam.log              # time_ms;roll_deg;pitch_deg
+./build/debug/attitude_estimator example/attitude_exam.log --alpha 0.1  # low-pass filtered
+./build/debug/attitude_estimator example/attitude_exam.log --output attitude.csv  # write to a file
 ```
 
 
@@ -22,8 +22,7 @@ pitch = atan2( ax, sqrt(ay² + az²))
 
 - CMake 3.28 or newer
 - Ninja
-- GCC 14 (`g++-14`) or Clang 18 (`clang++`)
-- Optional: ccache, which speeds up rebuilds and is used automatically when installed
+- Clang 18 (`clang++`); on Linux
 
 On Ubuntu 24.04:
 
@@ -34,22 +33,22 @@ sudo apt install cmake ninja-build g++-14 clang ccache
 ## Build
 
 ```bash
-cmake --preset gcc-debug            # configure
-cmake --build --preset gcc-debug    # compile
+cmake --preset debug            # configure
+cmake --build --preset debug    # compile
 ```
 
 ## Run the tests
 
 ```bash
-ctest --preset gcc-debug
+ctest --preset debug
 ```
 
 ## Format and lint
 
 ```bash
 git ls-files '*.cpp' '*.hpp' | xargs clang-format -i         # apply formatting
-cmake --preset clang-debug
-run-clang-tidy -p build/clang-debug "$PWD/(src|app|tests)/"   # lint
+cmake --preset debug
+run-clang-tidy -p build/debug "$PWD/(src|app|tests)/"         # lint
 ```
 
 ## Project layout

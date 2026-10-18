@@ -12,53 +12,22 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
-      "name": "gcc",
-      "hidden": true,
-      "inherits": "base",
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++-14"
-      }
-    },
-    {
-      "name": "clang",
-      "hidden": true,
-      "inherits": "base",
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang++"
-      }
-    },
-    {
-      "name": "gcc-debug",
-      "displayName": "GCC 14 Debug",
-      "inherits": "gcc",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "gcc-release",
-      "displayName": "GCC 14 Release",
-      "inherits": "gcc",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "clang-debug",
+      "name": "debug",
       "displayName": "Clang 18 Debug",
-      "inherits": "clang",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "clang-release",
+      "name": "release",
       "displayName": "Clang 18 Release",
-      "inherits": "clang",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -66,47 +35,25 @@
   ],
   "buildPresets": [
     {
-      "name": "gcc-debug",
-      "configurePreset": "gcc-debug"
+      "name": "debug",
+      "configurePreset": "debug"
     },
     {
-      "name": "gcc-release",
-      "configurePreset": "gcc-release"
-    },
-    {
-      "name": "clang-debug",
-      "configurePreset": "clang-debug"
-    },
-    {
-      "name": "clang-release",
-      "configurePreset": "clang-release"
+      "name": "release",
+      "configurePreset": "release"
     }
   ],
   "testPresets": [
     {
-      "name": "gcc-debug",
-      "configurePreset": "gcc-debug",
+      "name": "debug",
+      "configurePreset": "debug",
       "output": {
         "outputOnFailure": true
       }
     },
     {
-      "name": "gcc-release",
-      "configurePreset": "gcc-release",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "clang-debug",
-      "configurePreset": "clang-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "clang-release",
-      "configurePreset": "clang-release",
+      "name": "release",
+      "configurePreset": "release",
       "output": {
         "outputOnFailure": true
       }
