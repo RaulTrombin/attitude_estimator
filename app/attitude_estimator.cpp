@@ -13,7 +13,8 @@ namespace {
 void print_usage(const char* program)
 {
     std::println(stderr, "usage: {} <log_file> [--alpha <0..1>] [--output <file>]", program);
-    std::println(stderr, "  --alpha   low-pass filter factor for the accelerometer (default 1 = off)");
+    std::println(stderr,
+                 "  --alpha   low-pass filter factor for the accelerometer (default 1 = off)");
     std::println(stderr, "  --output  write the results to <file> instead of stdout");
 }
 
@@ -23,7 +24,7 @@ bool parse_alpha(std::string_view value, double& alpha)
     return ec == std::errc{} && ptr == value.data() + value.size() && alpha > 0.0 && alpha <= 1.0;
 }
 
-// Reads accelerometer samples from `input` and writes `time_ms;roll_deg;pitch_deg` rows to `output`.
+// Reads samples from `input` and writes `time_ms;roll_deg;pitch_deg` rows to `output`.
 void write_attitudes(std::istream& input, std::ostream& output, hexagon::AccelLowPassFilter& filter)
 {
     std::println(output, "time_ms;roll_deg;pitch_deg");
@@ -48,7 +49,7 @@ void write_attitudes(std::istream& input, std::ostream& output, hexagon::AccelLo
 
 } // namespace
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) // NOLINT(bugprone-exception-escape)
 {
     if (argc < 2 || argc % 2 != 0) {
         print_usage(argv[0]);

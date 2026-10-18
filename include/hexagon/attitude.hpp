@@ -54,4 +54,4 @@ private:
     AccelSample state_{};
 };
 
-}
+} // namespace hexagon

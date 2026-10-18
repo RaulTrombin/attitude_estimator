@@ -44,6 +44,14 @@ cmake --build --preset gcc-debug    # compile
 ctest --preset gcc-debug
 ```
 
+## Format and lint
+
+```bash
+git ls-files '*.cpp' '*.hpp' | xargs clang-format -i         # apply formatting
+cmake --preset clang-debug
+run-clang-tidy -p build/clang-debug "$PWD/(src|app|tests)/"   # lint
+```
+
 ## Project layout
 
 ```

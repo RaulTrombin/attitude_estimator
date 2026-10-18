@@ -32,7 +32,7 @@ bool parse_number(std::string_view text, T& value)
     return ec == std::errc{} && ptr == end;
 }
 
-}
+} // namespace
 
 std::optional<AccelSample> parse_sample(std::string_view line)
 {
@@ -78,7 +78,8 @@ Attitude estimate_attitude(const AccelSample& sample)
 
 AccelLowPassFilter::AccelLowPassFilter(double alpha) : alpha_{alpha}
 {
-    if (!(alpha > 0.0 && alpha <= 1.0)) {
+    // Written this way so NaN is rejected too; the DeMorgan form would let it through.
+    if (!(alpha > 0.0 && alpha <= 1.0)) { // NOLINT(readability-simplify-boolean-expr)
         throw std::invalid_argument("alpha must be in (0, 1]");
     }
 }
@@ -97,4 +98,4 @@ AccelSample AccelLowPassFilter::update(const AccelSample& sample)
     return state_;
 }
 
-}
+} // namespace hexagon

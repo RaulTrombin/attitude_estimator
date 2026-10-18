@@ -1,0 +1,5 @@
+---
+InheritParentConfig: true
+# GoogleTest's ASSERT_* macros return early, which the optional-access check does not model.
+Checks: >
+  -bugprone-unchecked-optional-access
