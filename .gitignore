@@ -1,0 +1,38 @@
+# Build output (one folder per CMake preset)
+build/
+out/
+
+# Personal CMake presets (CMakePresets.json is shared and committed)
+CMakeUserPresets.json
+
+# clangd index and compile database link
+.cache/
+compile_commands.json
+
+# Editor: keep shared VS Code config, ignore the rest
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
+
+# Compiled files (in case anything is built outside build/)
+*.o
+*.obj
+*.a
+*.so
+*.exe
+
+# Sanitizer, coverage and profiling output
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+perf.data*
+
+# OS files
+.DS_Store
+Thumbs.db
