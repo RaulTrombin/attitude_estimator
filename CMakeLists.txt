@@ -5,6 +5,9 @@ project(processo_hexagon
     DESCRIPTION "Modern C++ project"
     LANGUAGES CXX)
 
+# Required by clang-tidy.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # Use the compiler cache if it is installed
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
