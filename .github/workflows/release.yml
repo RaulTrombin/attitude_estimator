@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and release (e.g. v0.1.0)
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  PRESET: clang-release
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            os: ubuntu-24.04
+          - target: macos-arm64
+            os: macos-15
+          - target: windows-x86_64
+            os: windows-2025
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Install tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build clang-18 g++-14
+          echo "CXX_COMPILER=clang++-18" >> "$GITHUB_ENV"
+          echo "LINKER_FLAGS=-static-libstdc++ -static-libgcc" >> "$GITHUB_ENV"
+
+      # Apple Clang's libc++ lacks floating-point std::from_chars, so use Homebrew
+      # LLVM and link its libc++ statically: users do not need Homebrew installed.
+      - name: Install tools (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm ninja
+          LLVM="$(brew --prefix llvm)"
+          echo "LLVM=$LLVM" >> "$GITHUB_ENV"
+          echo "C_COMPILER=$LLVM/bin/clang" >> "$GITHUB_ENV"
+          echo "CXX_COMPILER=$LLVM/bin/clang++" >> "$GITHUB_ENV"
+          echo "LINKER_FLAGS=-nostdlib++ $LLVM/lib/c++/libc++.a $LLVM/lib/c++/libc++abi.a" >> "$GITHUB_ENV"
+
+      # clang-cl with the MSVC STL. The static CRT makes the .exe self-contained.
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install tools (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "CXX_COMPILER=clang-cl" >> "$GITHUB_ENV"
+          echo "EXTRA_CMAKE_ARGS=-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" >> "$GITHUB_ENV"
+          echo "EXE_SUFFIX=.exe" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: |
+          cmake --preset "$PRESET" \
+            -DCMAKE_CXX_COMPILER="$CXX_COMPILER" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS" \
+            $EXTRA_CMAKE_ARGS
+
+      - name: Build
+        run: cmake --build --preset "$PRESET"
+
+      - name: Test
+        run: ctest --preset "$PRESET"
+
+      - name: Smoke test
+        run: |
+          "build/$PRESET/attitude_estimator$EXE_SUFFIX" example/attitude_exam.log --output smoke.csv
+          head -n 3 smoke.csv
+
+      - name: Package
+        run: |
+          PKG="attitude_estimator-$TAG-${{ matrix.target }}"
+          mkdir -p "dist/$PKG"
+          cp "build/$PRESET/attitude_estimator$EXE_SUFFIX" README.md "dist/$PKG/"
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "$PKG.zip" "$PKG"
+          else
+            tar -czf "$PKG.tar.gz" "$PKG"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*.*
+          if-no-files-found: error
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "$TAG" --generate-notes --verify-tag
+          fi
