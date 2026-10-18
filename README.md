@@ -27,7 +27,7 @@ pitch = atan2( ax, sqrt(ay² + az²))
 On Ubuntu 24.04:
 
 ```bash
-sudo apt install cmake ninja-build g++-14 clang ccache
+sudo apt install cmake ninja-build clang ccache
 ```
 
 ## Build
